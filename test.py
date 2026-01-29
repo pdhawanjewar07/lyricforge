@@ -1,0 +1,18 @@
+b = [
+    ("comment", ["downloaded from lucida.to: http://www.tidal.com/track/226164020"]),
+    ("composer", ["AMIT TRIVEDI"]),
+    ("copyright", ["2012 YRF Music"]),
+    ("albumartist", ["Amit Trivedi"]),
+    ("discnumber", ["1/1"]),
+    ("title", ["Chokra Jawaan"]),
+    ("compatible_brands", ["mp41dashcmfc"]),
+    ("encoder", ["Lavf58.76.100"]),
+    ("minor_version", ["0"]),
+    ("album", ["Ishaqzaade"]),
+    ("tracknumber", ["2/8"]),
+    ("major_brand", ["iso8"]),
+    ("isrc", ["INY091200002"]),
+    ("lyricist", ["Habib Faisal"]),
+    ("date", ["2012-04-12"]),
+    ("artist", ["Amit Trivedi; Vishal Dadlani; Sunidhi Chauhan; Habib Faisal"]),
+]

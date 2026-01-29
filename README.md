@@ -4,7 +4,7 @@ a command line tool written in python to fetch time synced lyrics from multiple 
 use MP3TAG (https://www.mp3tag.de/) to embed lyrics to songs
 
 ## Steps to follow -
-1. setup a virtual environment-
+1. **setup a virtual environment**
 ```bash
 python -m venv .venv
 ```
@@ -13,11 +13,11 @@ python -m venv .venv
 source .venv/Scripts/activate
 ```
 
-2. install required packages
+2. **install required packages**
 ``` bash
 pip install -r requirements.txt
 ```
 
-3. select music directory
+3. **select music directory**
 
-4. run all cells
+4. **run all cells**
