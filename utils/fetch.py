@@ -42,9 +42,12 @@ _session.headers.update({
 })
 
 # Optimized function
-def lyrics(search_query: str, mode: int = 2) -> list | None:
+def lyrics(search_query: str) -> list | None:
     """
     Fetch lyrics metadata from lrclib.
+
+    Args:
+        search_query: cleaned search query
 
     Returns:
         Json list if found, otherwise None.
@@ -85,8 +88,8 @@ query_list = [
     "Ha Raham Mehfuz Aamir Original Motion Picture Soundtrack Amit Trivedi"
 ]
 for index, query in enumerate(query_list):
-    print(f"starting - {index+1}")
-    data = lyrics(search_query=query, mode=2)
+    print(f"starting - {index}")
+    data = lyrics(search_query=query)
     # Overwrite file every call (explicit, safe)
     with open(f"response{index}.json", "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)

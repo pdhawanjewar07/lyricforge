@@ -14,11 +14,11 @@ def main(music_directory:str) -> int:
     """
 
     music_directory = Path(music_directory)
-
     music_files = [f for f in music_directory.iterdir() if f.is_file() and f.suffix.lower() in config.AUDIO_EXTENSIONS]
-    for name in music_files:
-        print(name)
+    for song in music_files:
+        print(song)
+
     return 0
 
-main(music_directory=config.music_directory)
+main(music_directory=config.MUSIC_DIRECTORY)
 
