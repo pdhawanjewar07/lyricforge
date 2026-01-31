@@ -1,7 +1,7 @@
 LYRICS_SOURCES = ["musixmatch-via-spotify", "lrclib", "lyricsfind-via-ytmusic" "genius"] # order matters(by priority)
 AUDIO_EXTENSIONS = {".mp3", ".flac", ".wav", ".aac", ".m4a",".ogg", ".opus", ".alac", ".aiff"}
-MUSIC_DIRECTORY = "C:/Users/Max/Desktop/music" # non recursive
-OUTPUT_DIRECTORY = "C:/Users/Max/Desktop/music"
+MUSIC_DIRECTORY = "C:/Users/Max/Desktop/music/" # non recursive musixmatch_found
+OUTPUT_DIRECTORY = "C:/Users/Max/Desktop/music/"
 
 DRIVER_PATH = "C:/Users/Max/Desktop/VS-Code/Github Repositories/time-synced-lyrics/bin/chromedriver-win64/chromedriver.exe"  # must correspond to chrome version
 CHROME_BINARY = r"C:/Users/Max/Desktop/VS-Code/Github Repositories/time-synced-lyrics/bin/chrome-win64/chrome.exe"

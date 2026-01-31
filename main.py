@@ -1,8 +1,7 @@
-from utils import build, clean, fetch
+from utils import build, clean, fetch_musixmatch, fetch_lrclib
 from utils.helpers import save_lyrics
 from pathlib import Path
 from utils.config import AUDIO_EXTENSIONS, MUSIC_DIRECTORY, OUTPUT_DIRECTORY
-import os
 
 def main(music_dir:str, out_dir:str) -> int:
     """
@@ -34,10 +33,10 @@ def main(music_dir:str, out_dir:str) -> int:
         print(f"Query: {query}")
 
         # fetch lyrics from musixmatch-via-spotify
-        lyrics = fetch.lyrics_musixmatch_via_spotify(search_query=query)
+        # lyrics = fetch_musixmatch.lyrics_musixmatch_via_spotify(search_query=query, mode=2)
 
         # fetch lyrics from lrclib
-        # lyrics = fetch.lyrics_lrclib(search_query=query)
+        lyrics = fetch_lrclib.lyrics_lrclib(search_query=query, mode=2)
 
         # extract and save lyrics to location
         if lyrics:
