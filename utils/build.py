@@ -1,28 +1,28 @@
 from typing import List
 from mutagen import File
 
-TAGS_PRIORITY_ORDER = ["title", "artist", "album"]
+TAGS_PRIORITY_ORDER = ["title", "artist", "albumartist" "album"]
 
-def raw_search_query(song_path: str, source:str) -> str:
+def raw_search_query(song_path: str, source:int) -> str:
     """
     Build a search query string from selected audio tags.
 
     Args:
         song_path: Path to the audio file.
-        source: lyrics provider
+        source: lyrics provider[musixmatch-via-spotify(0), lrclib(1)]
 
     Returns:
-        Formatted search query string.
+        Raw search query(str).
     """
 
     # set default tags to include
     match source:
-        case "musixmatch-via-spotify":
-            tags_to_include = ['title', 'artist']
-        case "lrclib":
+        case 0: # musixmatch-via-spotify
             tags_to_include = ['title', 'artist', 'album']
-        case _: 
-            tags_to_include = ['title', 'artist']
+        case 1: # lrclib
+            tags_to_include = ['title', 'artist', 'album']
+        case _: # default
+            tags_to_include = ['title', 'artist', 'album']
 
 
     audio = File(song_path)
@@ -37,4 +37,4 @@ def raw_search_query(song_path: str, source:str) -> str:
     # print(raw_query)
     return raw_query
 
-# raw_search_query(song_path="C:\\Users\\Max\\Desktop\\music\\Anuj Gurwara - Thoda Hans Ke.flac")
+# raw_search_query(song_path="C:\\Users\\Max\\Desktop\\music\\Anuj Gurwara - Thoda Hans Ke.flac", source=0)

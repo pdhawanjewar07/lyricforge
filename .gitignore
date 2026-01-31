@@ -1,5 +1,8 @@
 .env
 .venv/
 utils/__pycache__/
+__pycache__/
+lyrics/
+bin/
 lyrics/
 main_log.txt
