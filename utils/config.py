@@ -1,5 +1,5 @@
 # preferences
-LYRICS_SOURCES = ["musixmatch-via-spotify", "lrclib", "lyricsfind-via-ytmusic" "genius"] # order matters(by priority)
+LYRICS_SOURCES = ["musixmatch-via-spotify", "lrclib", "genius"] # "lyricsfind-via-ytmusic"
 AUDIO_EXTENSIONS = {".mp3", ".flac", ".wav", ".aac", ".m4a",".ogg", ".opus", ".alac", ".aiff"}
 
 # music paths

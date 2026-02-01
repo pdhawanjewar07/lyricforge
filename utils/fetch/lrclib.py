@@ -2,7 +2,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import requests
 import random
-from utils.helpers import human_delay, extract_lrclib_lyrics
+from utils.helpers import human_delay, extract_lrclib_lyrics, build_search_query
 import time
 
 # General Variables Declaration
@@ -41,23 +41,21 @@ def new_session() -> requests.Session:
     s.headers.update(headers)
     return s
 
-
 # Global session (rotated)
 _session = new_session()
 _request_count = 0
 SESSION_ROTATE_EVERY = 7
 
-
-def lyrics_lrclib(search_query: str, mode:int=2) -> str | bool:
+def fetch_lyrics(song_path: str, mode:int=2) -> str | bool:
     """
     Fetch lyrics json response from lrclib.
 
     Args:
-        search_query: clean search query.
+        song_path: song path
         mode: synced(0), unsynced(1), synced_with_fallback(2).
 
     Returns:
-        JSON list if found, otherwise None.
+        Lyrics(str) if found, otherwise False
     """
     global _session, _request_count
 
@@ -70,6 +68,8 @@ def lyrics_lrclib(search_query: str, mode:int=2) -> str | bool:
             _session = new_session()
 
     human_delay()
+
+    search_query = build_search_query(song_path=song_path, source=1)
 
     try:
         response = _session.get(
@@ -110,5 +110,4 @@ def lyrics_lrclib(search_query: str, mode:int=2) -> str | bool:
     human_delay()
 
     lyrics = extract_lrclib_lyrics(json_data=data, mode=mode)
-
     return lyrics

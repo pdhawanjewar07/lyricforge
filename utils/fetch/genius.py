@@ -1,6 +1,6 @@
 import requests
 from utils.config import GENIUS_LYRICS_ELEMENT_XPATH
-from utils.helpers import extract_genius_song_url
+from utils.helpers import extract_genius_song_url, build_search_query
 from utils.selenium_startup import get_driver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -14,7 +14,17 @@ GENIUS_AUTH_BEARER_TOKEN = os.getenv("GENIUS_AUTH_BEARER_TOKEN")
 
 driver = get_driver()
 
-def lyrics_genius(search_query: str) -> str | bool:
+def fetch_lyrics(song_path: str) -> str | bool:
+    """fetch lyrics from genius
+
+    :param song_path: song path
+    :type song_path: str
+    :return: lyrics if found, otherwise False
+    :rtype: str | bool
+    """
+
+    search_query = build_search_query(song_path=song_path, source=2)
+
     url = "https://api.genius.com/search"
     headers = {"Authorization": f"Bearer {GENIUS_AUTH_BEARER_TOKEN}"}
     params = {"q": search_query}
@@ -43,6 +53,6 @@ def lyrics_genius(search_query: str) -> str | bool:
 
 
 # sawaal abhijeet srivastava (1), urzu urzu durkut (0), aazmale aazmale (1)
-# lyrics_genius(search_query="sawaal abhijeet srivastava")
+# fetch_lyrics(song_path="sawaal abhijeet srivastava")
 
 

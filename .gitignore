@@ -1,9 +1,12 @@
 .env
 .venv/
-utils/__pycache__/
+
 __pycache__/
-lyrics/
+utils/__pycache__/
+utils/fetch/__pycache__/
+
 bin/
-lyrics/
-main_log.txt
+archive/
+
+main.log
 test.py

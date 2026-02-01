@@ -1,11 +1,74 @@
 import time
 import random
+import re
+from mutagen import File
 
+def build_search_query(song_path: str, source:int, print_query:bool=True) -> str:
+    """Build a search query string from selected audio tags.
 
+    :param song_path: Path to the audio file.
+    :type song_path: str
+    :param source: musixmatch-via-spotify[0], lrclib[1], genius[2]
+    :type source: int
+    :param print_query: defaults to False
+    :type print_query: bool, optional
+    :return: Clean search query
+    :rtype: str
+    """
+    TAGS_PRIORITY_ORDER = ["title", "artist", "albumartist" "album"]
+    # set default tags to include
+    match source:
+        case 0: # musixmatch-via-spotify
+            tags_to_include = ['title', 'artist', 'album']
+        case 1: # lrclib
+            tags_to_include = ['title', 'artist', 'album']
+        case 2: # genius
+            tags_to_include = ['title', 'albumartist']
+        case _: # default
+            tags_to_include = ['title', 'artist', 'album']
+
+    audio = File(song_path)
+    raw_query = ""
+    # add to raw_query by priority
+    for tag in tags_to_include:
+        for key, value in audio.tags.items():
+            if key == tag:
+                raw_query += value[0] + " "
+
+    clean_query = clean_search_query(query=raw_query)
+    if print_query: print(clean_query)
+
+    return clean_query
 
 def human_delay(mean: float = 5.0, jitter: float = 0.3, minimum: float = 3.0):
     delay = random.gauss(mean, mean * jitter)
     time.sleep(max(minimum, delay))
+
+def clean_search_query(query:str) -> str:
+    """
+    cleans raw search query
+
+    Args:
+        query: raw search query (string)
+
+    Returns:
+        a clean search query (string)
+    """
+
+    # 1. Replace -, _, and . with space
+    cleaned_query = re.sub(r"[-_.]", " ", query)
+
+    # 2. Remove all ambiguous symbols
+    cleaned_query = re.sub(r"[^a-zA-Z0-9 ]+", "", cleaned_query)
+
+    # 3. Replace multiple consecutive spaces with a single space
+    cleaned_query = re.sub(r"\s+", " ", cleaned_query).strip()
+
+    # 4. Remove " Various Interprets" from query
+    cleaned_query = re.sub(r"\s*Various Interprets", "", cleaned_query, flags=re.IGNORECASE)
+
+    # print(cleaned_query)
+    return cleaned_query
 
 def save_lyrics(lyrics:str, out_dir: str, out_filename:str) -> bool:
     lyrics_file = out_dir + f"\\{out_filename}.lrc"
@@ -61,8 +124,8 @@ def extract_spotify_lyrics(json_data: dict, mode:int=2) -> str|bool:
         seconds = (ms % 60000) / 1000
         return f"{minutes:02d}:{seconds:05.2f}"
 
-    def synced():
-        if syncType == "LINE_SYNCED": # SYNCED
+    def synced(mode:int):
+        if syncType == "LINE_SYNCED" and mode==0|2: # SYNCED
             for entry in lines_data:
                 words = entry.get("words", "").strip()
                 if not words: continue
@@ -72,21 +135,23 @@ def extract_spotify_lyrics(json_data: dict, mode:int=2) -> str|bool:
             return True
         return False
 
-    def unsynced():
-        for entry in lines_data:
-            words = entry.get("words", "").strip()
-            if not words: continue
-            lrc_lines.append(words)
-        return True
+    def unsynced(mode:int):
+        if mode == 1:
+            for entry in lines_data:
+                words = entry.get("words", "").strip()
+                if not words: continue
+                lrc_lines.append(words)
+            return True
+        return False
         
     match mode:
         case 0: # synced oly
-            synced()
+            synced(mode=0)
         case 1: # unsynced only
-            unsynced()
+            unsynced(mode=1)
         case _: # synced with fallback
-            synced()
-            unsynced()
+            synced(mode=2)
+            unsynced(mode=2)
 
     return "\n".join(lrc_lines)
 

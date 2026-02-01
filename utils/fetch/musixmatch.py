@@ -1,6 +1,6 @@
 import requests
 from utils.config import SPOTIFY_TRACK_CSS_SELECTOR
-from utils.helpers import extract_spotify_lyrics
+from utils.helpers import extract_spotify_lyrics, build_search_query
 import re
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -17,17 +17,20 @@ sp = Spotify(SPOTIFY_DC_TOKEN)
 
 driver = get_driver()
 
-def lyrics_musixmatch_via_spotify(search_query: str, mode:int) -> str|bool:
+def fetch_lyrics(song_path: str, mode:int) -> str|bool:
     """
     Fetch lyrics json response from musixmatch_via_spotify
     
     Args:
-        search_query: clean search query.
+        search_query: song path
         mode: synced(0), unsynced(1), synced_with_fallback(2)
 
     Returns:
         Lyrics(str) if found, otherwise False
     """
+
+    search_query = build_search_query(song_path=song_path, source=0)
+
     url = f"https://open.spotify.com/search/{requests.utils.quote(search_query)}/tracks"
 
     try:
