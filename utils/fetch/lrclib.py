@@ -4,6 +4,10 @@ import requests
 import random
 from utils.helpers import human_delay, extract_lrclib_lyrics, build_search_query
 import time
+import logging
+
+
+log = logging.getLogger(__name__)
 
 # General Variables Declaration
 UA_POOL = [
@@ -110,4 +114,8 @@ def fetch_lyrics(song_path: str, mode:int=2) -> str | bool:
     human_delay()
 
     lyrics = extract_lrclib_lyrics(json_data=data, mode=mode)
-    return lyrics
+    if lyrics:
+        log.info("SUCCESS - LrcLib: lyrics found")
+        return lyrics
+    else:
+        log.info("FAILURE - LrcLib: lyrics not found")

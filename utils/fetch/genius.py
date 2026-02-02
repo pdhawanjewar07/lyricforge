@@ -8,6 +8,10 @@ from selenium.webdriver.common.by import By
 import time
 from dotenv import load_dotenv
 import os
+import logging
+
+
+log = logging.getLogger(__name__)
 
 load_dotenv()
 GENIUS_AUTH_BEARER_TOKEN = os.getenv("GENIUS_AUTH_BEARER_TOKEN")
@@ -36,19 +40,19 @@ def fetch_lyrics(song_path: str) -> str | bool:
     song_url = extract_genius_song_url(json_data=json_response)
     if song_url is False: return False
 
-    print(song_url)
-    print("visiting url")
+    # log.debug(song_url)
+    log.debug("visiting url")
     st = time.time()
     driver.get(song_url)
     elapsed = time.time() - st
-    print(f"url visited({elapsed:0.2f}s)")
-    print("waiting to find lyrics element")
+    log.debug(f"url visited({elapsed:0.2f}s)")
+    log.debug("waiting to find lyrics element")
     st = time.time()
     lyrics_element = WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.XPATH, GENIUS_LYRICS_ELEMENT_XPATH)))
     elapsed = time.time() - st
-    print(f"element found({elapsed:0.2f}s)")
+    log.debug(f"element found({elapsed:0.2f}s)")
 
-    # print(lyrics_element.text)
+    # log.debug(lyrics_element.text)
     return lyrics_element.text
 
 

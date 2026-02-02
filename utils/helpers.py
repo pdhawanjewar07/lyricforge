@@ -2,47 +2,20 @@ import time
 import random
 import re
 from mutagen import File
+import logging
 
-def build_search_query(song_path: str, source:int, print_query:bool=True) -> str:
-    """Build a search query string from selected audio tags.
 
-    :param song_path: Path to the audio file.
-    :type song_path: str
-    :param source: musixmatch-via-spotify[0], lrclib[1], genius[2]
-    :type source: int
-    :param print_query: defaults to False
-    :type print_query: bool, optional
-    :return: Clean search query
-    :rtype: str
-    """
-    TAGS_PRIORITY_ORDER = ["title", "artist", "albumartist" "album"]
-    # set default tags to include
-    match source:
-        case 0: # musixmatch-via-spotify
-            tags_to_include = ['title', 'artist', 'album']
-        case 1: # lrclib
-            tags_to_include = ['title', 'artist', 'album']
-        case 2: # genius
-            tags_to_include = ['title', 'albumartist']
-        case _: # default
-            tags_to_include = ['title', 'artist', 'album']
-
-    audio = File(song_path)
-    raw_query = ""
-    # add to raw_query by priority
-    for tag in tags_to_include:
-        for key, value in audio.tags.items():
-            if key == tag:
-                raw_query += value[0] + " "
-
-    clean_query = clean_search_query(query=raw_query)
-    if print_query: print(clean_query)
-
-    return clean_query
-
-def human_delay(mean: float = 5.0, jitter: float = 0.3, minimum: float = 3.0):
-    delay = random.gauss(mean, mean * jitter)
-    time.sleep(max(minimum, delay))
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO, # DEBUG 
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler("main.log", encoding='utf-8'),
+        logging.StreamHandler()  # also print to console
+    ]
+)
+log = logging.getLogger(__name__)
+log.info("==== New log session was started ====")
 
 def clean_search_query(query:str) -> str:
     """
@@ -67,8 +40,45 @@ def clean_search_query(query:str) -> str:
     # 4. Remove " Various Interprets" from query
     cleaned_query = re.sub(r"\s*Various Interprets", "", cleaned_query, flags=re.IGNORECASE)
 
-    # print(cleaned_query)
     return cleaned_query
+
+def build_search_query(song_path: str, source:int) -> str:
+    """Build a search query string from selected audio tags.
+
+    :param song_path: Path to the audio file.
+    :type song_path: str
+    :param source: musixmatch-via-spotify[0], lrclib[1], genius[2]
+    :type source: int
+    :return: Clean search query
+    :rtype: str
+    """
+    TAGS_PRIORITY_ORDER = ["title", "artist", "albumartist" "album"]
+    # set default tags to include
+    match source:
+        case 0: # musixmatch-via-spotify
+            tags_to_include = ['title', 'artist', 'album']
+        case 1: # lrclib
+            tags_to_include = ['title', 'artist', 'album']
+        case 2: # genius
+            tags_to_include = ['title', 'albumartist']
+        case _: # default
+            tags_to_include = ['title', 'artist', 'album']
+
+    audio = File(song_path)
+    raw_query = ""
+    # add to raw_query by priority
+    for tag in tags_to_include:
+        for key, value in audio.tags.items():
+            if key == tag:
+                raw_query += value[0] + " "
+
+    clean_query = clean_search_query(query=raw_query)
+    # log.info(f"QUERY: {clean_query}")
+    return clean_query
+
+def human_delay(mean: float = 5.0, jitter: float = 0.3, minimum: float = 3.0):
+    delay = random.gauss(mean, mean * jitter)
+    time.sleep(max(minimum, delay))
 
 def save_lyrics(lyrics:str, out_dir: str, out_filename:str) -> bool:
     lyrics_file = out_dir + f"\\{out_filename}.lrc"

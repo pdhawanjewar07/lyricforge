@@ -9,12 +9,14 @@ from syrics.api import Spotify
 from utils.selenium_startup import get_driver
 from dotenv import load_dotenv
 import os
+import logging
+
 
 load_dotenv()
 SPOTIFY_DC_TOKEN = os.getenv("SPOTIFY_DC_TOKEN")
 
+log = logging.getLogger(__name__)
 sp = Spotify(SPOTIFY_DC_TOKEN)
-
 driver = get_driver()
 
 def fetch_lyrics(song_path: str, mode:int) -> str|bool:
@@ -37,7 +39,7 @@ def fetch_lyrics(song_path: str, mode:int) -> str|bool:
         driver.get(url)
         first_track = WebDriverWait(driver, 60).until(EC.presence_of_element_located((By.CSS_SELECTOR, SPOTIFY_TRACK_CSS_SELECTOR)))
     except: 
-        # print("Lyrics not found - MusixMatch")
+        log.info("Spotify: could not get track(selenium driver time out)")
         return False
 
     old_url = driver.current_url
@@ -45,7 +47,7 @@ def fetch_lyrics(song_path: str, mode:int) -> str|bool:
     WebDriverWait(driver, 30).until(lambda d: d.current_url != old_url and "/track/" in d.current_url)
 
     track_url = driver.current_url
-    print(track_url)
+    # print(track_url)
     match = re.search(r"/track/([A-Za-z0-9]+)", track_url)
     track_id = match.group(1)
     # print(track_id)
@@ -53,22 +55,10 @@ def fetch_lyrics(song_path: str, mode:int) -> str|bool:
     json_response = sp.get_lyrics(track_id=track_id)
     # print(json_response)
     lyrics = extract_spotify_lyrics(json_data=json_response, mode=mode)
-    try:
-        return lyrics
-    except:
-        return False
-
-
-"""
-query_list = ["Chokra Jawaan"] # ,"Bezubaan Phir Se ABCD 2","Jaane Bhi De Heyy Babyy","Ha Raham Mehfuz"
-for index, query in enumerate(query_list):
-    print(f"starting - {index}")
-    lyrics = lyrics_musixmatch_via_spotify(search_query=query)
-
     if lyrics:
-        with open(f"lyrics/{query}.lrc", "w", encoding="utf-8") as f:
-            f.write(lyrics)
-        print("SUCCESS - Lyrics found")
-    else: print("FAILURE - No lyrics found")
+        log.info("SUCCESS - MusixMatch: lyrics found")
+        return lyrics
+    
+    log.info("FAILURE - MusixMatch: lyrics not found")
+    return False
 
-"""

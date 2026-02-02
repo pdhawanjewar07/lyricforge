@@ -1,5 +1,6 @@
 # preferences
-LYRICS_SOURCES = ["musixmatch-via-spotify", "lrclib", "genius"] # "lyricsfind-via-ytmusic"
+LYRICS_FETCH_MODE = 2 # synced[0], unsynced[1], synced_with_fallback[2] (Default:2)
+LYRICS_SOURCES = ["musixmatch-via-spotify", "lrclib", "genius"] # "lyricsfind-via-ytmusic" (by priority)
 AUDIO_EXTENSIONS = {".mp3", ".flac", ".wav", ".aac", ".m4a",".ogg", ".opus", ".alac", ".aiff"}
 
 # music paths
