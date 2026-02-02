@@ -19,7 +19,7 @@ GENIUS_AUTH_BEARER_TOKEN = os.getenv("GENIUS_AUTH_BEARER_TOKEN")
 driver = get_driver()
 
 def fetch_lyrics(song_path: str) -> str | bool:
-    """fetch lyrics from genius
+    """fetch unsynced lyrics from genius
 
     :param song_path: song path
     :type song_path: str
