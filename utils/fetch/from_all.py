@@ -1,63 +1,62 @@
+from utils.fetch.musixmatch import fetch_lyrics as fetch_musixmatch
+from utils.fetch.lrclib import fetch_lyrics as fetch_lrclib
 import logging
-from utils.fetch import lrclib, genius, musixmatch
-from enum import IntEnum
-from typing import Iterable, Callable
 
 log = logging.getLogger(__name__)
 
-class LyricsMode(IntEnum):
-    SYNCED_ONLY = 0
-    UNSYNCED_ONLY = 1
-    SYNCED_FALLBACK = 2
-
-
 SOURCE_FETCHERS = {
-    "musixmatch-via-spotify": {
-        "synced": lambda song_path: musixmatch.fetch_lyrics(song_path, mode=0),
-        "unsynced": lambda song_path: musixmatch.fetch_lyrics(song_path, mode=1),
-    },
-    "lrclib": {
-        "synced": lambda song_path: lrclib.fetch_lyrics(song_path, mode=0),
-        "unsynced": lambda song_path: lrclib.fetch_lyrics(song_path, mode=1),
-    },
-    "genius": {
-        "unsynced": lambda song_path: genius.fetch_lyrics(song_path),
-    },
+    "MusixMatch": fetch_musixmatch,
+    "Lrclib": fetch_lrclib,
 }
 
 
-def _try_fetch(
-    song_path: str,
-    sources: Iterable[str],
-    kind: str,  # "synced" | "unsynced"
-):
-    for source in sources:
-        fetcher: Callable | None = SOURCE_FETCHERS.get(source, {}).get(kind)
-        if not fetcher:
-            continue
-        lyrics = fetcher(song_path)
-        if lyrics:
-            return lyrics
+def fetch_lyrics(song_path:str, fetch_mode:int) -> str|bool:
+    """fetch lyrics from all sources
+
+    :param song_path: song path
+    :type song_path: str
+    :param fetch_mode: synced[0], unsynced[1], synced_with_fallback[2]
+    :type fetch_mode: int
+    :return: lyrics if found, otherwise False
+    :rtype: str | bool
+    """
+    for source_name, source in SOURCE_FETCHERS.items():  # use source as module
+        synced_lyrics, unsynced_lyrics = source(song_path=song_path)
+
+        match fetch_mode:
+            case 0: # synced only
+                if synced_lyrics is not False:
+                    log.info(f"SUCCESS - {source_name}: synced lyrics found")
+                    return synced_lyrics
+            case 1: # unsynced only
+                if unsynced_lyrics is not False:
+                    log.info(f"SUCCESS - {source_name}: unsynced lyrics found")
+                    return unsynced_lyrics
+            case _: # Default: synced with fallback
+                if synced_lyrics is not False:
+                    log.info(f"SUCCESS - {source_name}: synced lyrics found")
+                    return synced_lyrics
+                if unsynced_lyrics is not False:
+                    log.info(f"SUCCESS - {source_name}: unsynced lyrics found")
+                    return unsynced_lyrics
+        log.info(f"FAILURE - {source_name}: synced/unsynced lyrics not found")
+
     return False
 
 
-def fetch_lyrics(
-    song_path: str,
-    lyrics_fetch_mode: LyricsMode,
-    lyrics_sources: Iterable[str],
-):
-    if not lyrics_sources:
-        return False
 
-    if lyrics_fetch_mode == LyricsMode.SYNCED_ONLY:
-        return _try_fetch(song_path, lyrics_sources, "synced")
+if __name__ == "__main__":
+    SONG_PATHS = [
+        "C:\\Users\\Max\\Desktop\\music\\small\\Sunidhi Chauhan - Tanha Tere Bagair.flac", # musixmatch only
+        "C:\\Users\\Max\\Desktop\\music\\small\\Shreya Ghoshal - Cry Cry.flac", # lrclib only
+        "C:\\Users\\Max\\Desktop\\music\\small\\Outstation - Tum Se.flac", # both
+        "C:\\Users\\Max\\Desktop\\music\\small\\Heil Hitler Kanye West.flac" # none
+        ]
+    for i, song in enumerate(SONG_PATHS):
+        print(f"{i+1}. {song}")
+        lyrics = fetch_lyrics(song_path=song, fetch_mode=2)
+        if lyrics is not False:
+            with open(f"_lyrics/{i+1}.lrc", "w", encoding="utf-8") as f:
+                f.write(song + "\n\n" + lyrics)
 
-    if lyrics_fetch_mode == LyricsMode.UNSYNCED_ONLY:
-        return _try_fetch(song_path, lyrics_sources, "unsynced")
 
-    # SYNCED_FALLBACK
-    synced = _try_fetch(song_path, lyrics_sources, "synced")
-    if synced:
-        return synced
-
-    return _try_fetch(song_path, lyrics_sources, "unsynced")

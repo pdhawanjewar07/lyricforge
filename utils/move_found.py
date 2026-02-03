@@ -1,8 +1,8 @@
 from pathlib import Path
 import shutil
+from config import AUDIO_EXTENSIONS
 
-
-def move_flac_lrc_pairs(src_dir: str, dst_dir: str) -> None:
+def move_audio_lrc_pairs(src_dir: str, dst_dir: str) -> bool:
     src = Path(src_dir)
     dst = Path(dst_dir)
 
@@ -11,18 +11,20 @@ def move_flac_lrc_pairs(src_dir: str, dst_dir: str) -> None:
 
     dst.mkdir(parents=True, exist_ok=True)
 
-    flac_files = src.glob("*.flac")
+    for audio in src.iterdir():
+        if audio.is_file() and audio.suffix.lower() in AUDIO_EXTENSIONS:
+            lrc = audio.with_suffix(".lrc")
 
-    for flac in flac_files:
-        lrc = flac.with_suffix(".lrc")
-
-        if lrc.exists():
-            shutil.move(str(flac), dst / flac.name)
-            shutil.move(str(lrc), dst / lrc.name)
+            if lrc.exists():
+                shutil.move(audio, dst / audio.name)
+                shutil.move(lrc, dst / lrc.name)
+    
+    print("Done")
+    return True
 
 
 if __name__ == "__main__":
     SOURCE_DIR = r"C:\\Users\\Max\\Desktop\\music"
     DEST_DIR = r"C:\\Users\\Max\\Desktop\\music\\found"
 
-    move_flac_lrc_pairs(SOURCE_DIR, DEST_DIR)
+    move_audio_lrc_pairs(SOURCE_DIR, DEST_DIR)

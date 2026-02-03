@@ -1,97 +1,156 @@
-# from requests.adapters import HTTPAdapter
-# from urllib3.util.retry import Retry
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 import requests
-# import random
+import random
 from utils.helpers import human_delay, extract_lrclib_lyrics, build_search_query, match_song_metadata
-# import time
-import json
+import time
 import logging
-
+import json
 
 log = logging.getLogger(__name__)
 
-cache = {
-    "synced_lyrics":None,
-    "synced_description":None,
-    "unsynced_lyrics":None,
-    "unsynced_description":None
+
+# General Variables Declaration
+UA_POOL = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+]
+BASE_HEADERS = {
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "en-US,en;q=0.9",
+    # kill keep-alive to avoid poisoned TLS sockets
+    "Connection": "close",
 }
+_retry = Retry(
+    total=0,
+    backoff_factor=1.5,
+    status_forcelist=[500, 502, 503, 504],
+    allowed_methods=["GET"],
+    raise_on_status=False,
+)
 
-def fetch_lyrics(song_path: str, mode:int=2) -> str | bool:
+_adapter = HTTPAdapter(max_retries=_retry)
+
+# Session factory
+def new_session() -> requests.Session:
+    s = requests.Session()
+    s.mount("https://", _adapter)
+    headers = BASE_HEADERS.copy()
+    headers["User-Agent"] = random.choice(UA_POOL)
+    s.headers.update(headers)
+    return s
+
+# Global session (rotated)
+_session = new_session()
+_request_count = 0
+SESSION_ROTATE_EVERY = 7
+
+def fetch_lyrics(song_path: str) -> tuple:
     """
-    Fetch lyrics json response from lrclib.
-
-    Args:
-        song_path: song path
-        mode: synced(0), unsynced(1), synced_with_fallback(2).
-
-    Returns:
-        Lyrics(str) if found, otherwise False
-    """
-    # if unsynced is requested, return cached if available
-    if cache["unsynced_lyrics"] is not None and mode == 1:
-        log.info("SUCCESS - LrcLib: unsynced lyrics found")
-        return cache["unsynced_lyrics"]
+    Fetch lyrics from lrclib
     
+    :param song_path: song path
+    :type song_path: str
+    :return: (synced_lyrics, unsynced_lyrics) items can be str|False
+    :rtype: tuple
+
+    """
+    global _session, _request_count
+
+    cache = {
+        "synced_lyrics":False,
+        "synced_description":False,
+        "unsynced_lyrics":False,
+        "unsynced_description":False
+    }
+
+    # rotate session periodically
+    _request_count += 1
+    if _request_count % SESSION_ROTATE_EVERY == 0:
+        try:
+            _session.close()
+        finally:
+            _session = new_session()
+
+    """
+    sleep_duration = human_delay()
+    log.info(f"WAITING - {sleep_duration:0.2f}s before next lrclib request")
+    time.sleep(sleep_duration)
+    """
+
     search_query = build_search_query(song_path=song_path)
 
-    # this shit needs way too much delay between requests
-    # human_delay(mean=10, jitter=0.5, minimum=8)
+    try:
+        response = _session.get(
+            "https://lrclib.net/api/search",
+            params={
+                "q": search_query,
+                "limit": random.choice([10, 15, 20]),
+            },
+            timeout=(3, 10),
+            allow_redirects=True,
+        )
 
-    response = requests.get(f"https://lrclib.net/api/search", params={"q":search_query}, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
+    except requests.exceptions.SSLError:
+        # poisoned TLS session → hard reset
+        try:
+            _session.close()
+        finally:
+            _session = new_session()
+        return (False, False)
+
+    except requests.exceptions.RequestException:
+        return (False, False)
+
+    # explicit rate-limit handling
+    if response.status_code == 429:
+        time.sleep(random.uniform(60, 120))
+        return (False, False)
 
     if response.status_code != 200:
-        log.info("FAILURE - Lrclib: request not 200 OK!")
-        return False
+        return (False, False)
 
-    json_data = response.json()
-
-    # lyrics_and_description = (synced_lyrics, unsynced_lyrics, description)
-    synced_unsynced = extract_lrclib_lyrics(json_data=json_data)
+    try: json_response = response.json()
+    except ValueError: return (False, False)
+    # print(json_response)
+    # with open(f"_lyrics/1.json", "w", encoding="utf-8") as f:
+    #     json.dump(json_response, f, ensure_ascii=False, indent=2)
     
-    cache["synced_lyrics"] = synced_unsynced[0]
-    cache["synced_description"] = synced_unsynced[1]
-    cache["unsynced_lyrics"] = synced_unsynced[2]
-    cache["unsynced_description"] = synced_unsynced[3]
+    lyrics = extract_lrclib_lyrics(json_data=json_response)  # tuple is returned
+    # print(lyrics)
 
+    cache["synced_lyrics"], cache["synced_description"], cache["unsynced_lyrics"], cache["unsynced_description"] = lyrics
 
-    flag = ""
-    if flag is False:
-        log.info("FAILURE - Lrclib: synced/unsynced lyrics not found")
-        return False
-    
-    try: sync_flag = match_song_metadata(local_song_path=song_path, received_song_info=cache["synced_description"], threshold=70)
-    except: log.info("FAILURE - LrcLib: synced lyrics not found")
-    try: unsync_flag = match_song_metadata(local_song_path=song_path, received_song_info=cache["unsynced_description"], threshold=70)
-    except: log.info("FAILURE - LrcLib: unsynced lyrics not found")
+    try:
+        sync_flag = match_song_metadata(local_song_path=song_path, received_song_info=cache["synced_description"], threshold=70)
+        unsync_flag = match_song_metadata(local_song_path=song_path, received_song_info=cache["unsynced_description"], threshold=70)
+        if sync_flag is False: cache["synced_lyrics"] = False
+        if unsync_flag is False: cache["unsynced_lyrics"] = False
+    except:
+        # log.info("FAILURE - LrcLib sync_flag: incorrect match")
+        # log.info("FAILURE - LrcLib unsync_flag: incorrect match")
+        pass
 
-    match mode:
-        case 0: # synced only
-            if cache["synced_lyrics"] is not None and sync_flag is True:
-                log.info("SUCCESS - LrcLib: synced lyrics found")
-                return cache["synced_lyrics"]
-            else: log.info("FAILURE - LrcLib: synced lyrics not found")
-        case 1: # unsynced only
-            if cache["unsynced_lyrics"] is not None and unsync_flag is True:
-                log.info("SUCCESS - LrcLib: unsynced lyrics found")
-                return cache["unsynced_lyrics"]
-            else: log.info("FAILURE - LrcLib: unsynced lyrics not found")
-        case _: # Default: synced_with_fallback
-            if cache["synced_lyrics"] is not None and sync_flag is True:
-                log.info("SUCCESS - LrcLib: synced lyrics found")
-                return cache["synced_lyrics"]
-            elif cache["unsynced_lyrics"] is not None and unsync_flag is True:
-                log.info("SUCCESS - LrcLib: unsynced lyrics found")
-                return cache["unsynced_lyrics"]
-            else:
-                log.info("FAILURE - Lrclib: synced/unsynced lyrics not found")
-                return False
+    return (cache["synced_lyrics"], cache["unsynced_lyrics"])
 
 
 if __name__ == "__main__":
-    output = fetch_lyrics(song_path="C:\\Users\\Max\\Desktop\\music\\small\\MOHIT CHAUHAN - Naina.flac", mode=2)
-    # print(output)
-    if type(output) is str:
-        with open("lrclib_lyrics.lrc", "w", encoding="utf-8") as f:
-            f.write(output)
+    SONG_PATHS = [
+        "C:\\Users\\Max\\Desktop\\music\\small\\Sunidhi Chauhan - Tanha Tere Bagair.flac", # musixmatch only
+        "C:\\Users\\Max\\Desktop\\music\\small\\Shreya Ghoshal - Cry Cry.flac", # lrclib only
+        "C:\\Users\\Max\\Desktop\\music\\small\\Outstation - Tum Se.flac", # both
+        "C:\\Users\\Max\\Desktop\\music\\small\\Heil Hitler Kanye West.flac" # none
+        ]
+    for i, song in enumerate(SONG_PATHS):
+        print(f"{i+1}. {song}")
+        synced, unsynced =  fetch_lyrics(song_path=song)
+        with open(f"_lyrics/{i+1}.lrc", "w", encoding="utf-8") as f:
+            f.write(f"\n{song}\nsynced\n\n{synced}")
+            f.write(f"\n{song}\nunsynced\n\n{unsynced}")
 

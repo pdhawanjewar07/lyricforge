@@ -1,11 +1,11 @@
 # preferences
 LYRICS_FETCH_MODE = 2 # synced[0], unsynced[1], synced_with_fallback[2] (Default:2)
-LYRICS_SOURCES = ["musixmatch-via-spotify", "lrclib"] # "lyricsfind-via-ytmusic", "genius" (by priority)
+# LYRICS_SOURCES = ["musixmatch-via-spotify", "lrclib"] # "lyricsfind-via-ytmusic"(fixed priority in fetch.from_all)
 AUDIO_EXTENSIONS = {".mp3", ".flac", ".wav", ".aac", ".m4a",".ogg", ".opus", ".alac", ".aiff"}
 
 # music paths
-MUSIC_DIRECTORY = "C:/Users/Max/Desktop/music/small" # non recursive musixmatch_found
-OUTPUT_DIRECTORY = "C:/Users/Max/Desktop/music/small" # output directory for song_name.lrc
+MUSIC_DIRECTORY = "C:/Users/Max/Desktop/music" # non recursive musixmatch_found
+OUTPUT_DIRECTORY = "C:/Users/Max/Desktop/music" # output directory for song_name.lrc
 
 # chrome & driver paths
 # C:/Users/Max/Desktop/VS-Code/Github Repositories/time-synced-lyrics/bin/chromedriver-win64/chromedriver.exe

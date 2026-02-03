@@ -1,4 +1,3 @@
-import time
 import random
 import re
 from mutagen import File
@@ -110,8 +109,7 @@ def build_search_query(song_path: str) -> str:
 def human_delay(mean: float = 5.0, jitter: float = 0.3, minimum: float = 3.0):
     delay = random.gauss(mean, mean * jitter)
     sleep_duration = max(minimum, delay)
-    log.info(f"WAITING - {sleep_duration:0.2f}s before next lrclib request")
-    time.sleep(sleep_duration)
+    return sleep_duration
 
 def save_lyrics(lyrics:str, out_dir: str, out_filename:str) -> bool:
     lyrics_file = out_dir + f"\\{out_filename}.lrc"
@@ -158,12 +156,11 @@ def extract_spotify_lyrics(json_data: dict) -> tuple:
     lyrics = json_data.get("lyrics", {})
     syncType = lyrics.get("syncType", "")
     lines_data = lyrics.get("lines", [])
-    lyrics = {
+    lyrics_data = {
         "synced_lyrics": "",
         "unsynced_lyrics": ""
     }
     
-
     def ms_to_timestamp(ms: int) -> str:
         minutes = ms // 60000
         seconds = (ms % 60000) / 1000
@@ -173,10 +170,9 @@ def extract_spotify_lyrics(json_data: dict) -> tuple:
         if syncType == "LINE_SYNCED":
             for entry in lines_data:
                 words = entry.get("words", "").strip()
-                # if not words: continue
                 start_ms = int(entry["startTimeMs"])
                 timestamp = ms_to_timestamp(start_ms)
-                lyrics["synced_lyrics"] += f"\n[{timestamp}]{words}"
+                lyrics_data["synced_lyrics"] += f"\n[{timestamp}]{words}"
             return True
         return False
 
@@ -184,17 +180,16 @@ def extract_spotify_lyrics(json_data: dict) -> tuple:
         if syncType in ["LINE_SYNCED", "UNSYNCED"]:
             for entry in lines_data:
                 words = entry.get("words", "").strip()
-                # if not words: continue
-                lyrics["unsynced_lyrics"] += f"\n[{words}"
+                lyrics_data["unsynced_lyrics"] += f"\n{words}"
             return True
         return False
         
     if synced() is True:
-        lyrics["synced_lyrics"] += "\n\nSource: MusixMatch via Spotify"
+        lyrics_data["synced_lyrics"] += "\n\nSource: MusixMatch via Spotify"
     if unsynced() is True:
-        lyrics["unsynced_lyrics"] += "\n\nSource: MusixMatch via Spotify"
+        lyrics_data["unsynced_lyrics"] += "\n\nSource: MusixMatch via Spotify"
 
-    return (lyrics["synced_lyrics"], lyrics["unsynced_lyrics"])
+    return (lyrics_data["synced_lyrics"], lyrics_data["unsynced_lyrics"])
 
 def extract_lrclib_lyrics(json_data: list[dict]) -> tuple:
     """
@@ -210,55 +205,54 @@ def extract_lrclib_lyrics(json_data: list[dict]) -> tuple:
     """
     if not isinstance(json_data, list): return False
     
-    synced_lyrics:str|None = None
-    unsynced_lyrics:str|None = None
-    synced_description:str|bool = None
-    unsynced_description:str|bool = None
-
     def get_description(item:dict)->str:
         title = clean_string(item.get("trackName", ""))
         artist = clean_string(item.get("artistName", ""))
         album = clean_string(item.get("albumName", ""))
         return f"{title} {artist} {album}" # description
 
-    def get_synced_description() -> str|bool:
+    def get_synced() -> str|bool:
         """
         get synced lyrics from lrclib
         
         :param json_data: lrclib json data
         :type json_data: list[dict]
-        :return: synced lyrics & description if found, otherwise False
-        :rtype: tuple | bool
+        :return: (unsynced_lyrics, unsynced_description) items can be False
+        :rtype: tuple
 
         """
+        synced_lyrics:str = ""
+        synced_description:str|bool = False
         for item in json_data:
-            synced_lyrics = item.get("syncedLyrics")    # can be str|None
-            if  synced_lyrics is not None:
-                synced_lyrics = synced_lyrics  + "\n\nSource: Lrclib"
+            synced = item.get("syncedLyrics")    # can be str|None
+            if  synced is not None:
+                synced_lyrics = synced  + "\n\nSource: Lrclib"
                 synced_description = get_description(item=item)
-                return synced_description
-        return False
+                return synced_lyrics, synced_description
+        return (False, False)
 
-    def get_unsynced_description() -> str|bool:
+    def get_unsynced() -> str|bool:
         """
         get unsynced lyrics from lrclib
         
         :param json_data: lrclib json data
         :type json_data: list[dict]
-        :return: unsynced lyrics & description if found, otherwise False
-        :rtype: tuple | bool
+        :return: (unsynced_lyrics, unsynced_description) items can be False
+        :rtype: tuple
         
         """
+        unsynced_lyrics:str = ""
+        unsynced_description:str|bool = False
         for item in json_data:
-            unsynced_lyrics = item.get("plainLyrics")   # can be str|None
-            if  unsynced_lyrics is not None:
-                unsynced_lyrics = unsynced_lyrics  + "\n\nSource: Lrclib"
+            unsynced = item.get("plainLyrics")   # can be str|None
+            if  unsynced is not None:
+                unsynced_lyrics = unsynced  + "\n\nSource: Lrclib"
                 unsynced_description = get_description(item=item)
-                return unsynced_description
-        return False
+                return unsynced_lyrics, unsynced_description
+        return (False, False)
 
-    synced_description = get_synced_description()
-    unsynced_description = get_unsynced_description()
+    synced_lyrics, synced_description = get_synced()
+    unsynced_lyrics, unsynced_description = get_unsynced()
 
     return (synced_lyrics, synced_description, unsynced_lyrics, unsynced_description)
 
@@ -271,4 +265,6 @@ if __name__ == "__main__":
     received_song_info = 'Tauba Tauba Salim–Sulaiman, Sonu Nigam, Kunal Ganjawala, Sunidhi Chauhan, Richa Sharma · Kaal (Original Motion Picture Soundtrack) · Song · 2005'
     flag = match_song_metadata(local_song_path="C:\\Users\\Max\\Desktop\\music\\Sonu Nigam - Tauba Tauba.flac", received_song_info=received_song_info, threshold=70)
     print(flag)
+
+    
 
