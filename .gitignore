@@ -7,7 +7,7 @@ utils/fetch/__pycache__/
 
 playwright_profile/
 lyrics/
-
+backup/
 
 main.log
 test.py

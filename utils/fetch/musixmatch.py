@@ -3,21 +3,22 @@ import logging
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 import os
-from syrics.api import Spotify
+# from syrics.api import Spotify
 from config import SPOTIFY_TRACK_CSS_SELECTOR
 import requests
-from utils.playwright_startup import PlaywrightDriver
+from utils.playwright_driver import PlaywrightDriver, clear_profile_cache
 import re
 import json
 
 
+
 load_dotenv()
-SPOTIFY_DC_TOKEN = os.getenv("SPOTIFY_DC_TOKEN")
+SPOTIFY_AUTH = os.getenv("SPOTIFY_AUTH")
+# SPOTIFY_DC_TOKEN = os.getenv("SPOTIFY_DC_TOKEN")
 log = logging.getLogger(__name__)
-sp = Spotify(SPOTIFY_DC_TOKEN)
+# sp = Spotify(SPOTIFY_DC_TOKEN)
 
-
-driver = PlaywrightDriver(headless=True)   # False only for debugging
+driver = PlaywrightDriver(headless=True)   # False only for debugging/spotify login
 
 def fetch_lyrics(song_path: str) -> tuple:
     """
@@ -56,10 +57,21 @@ def fetch_lyrics(song_path: str) -> tuple:
         tag = soup.find("meta", property=prop)
         return tag["content"] if tag else None
     
+
+    # """
+    try:
+        encoded_img_url = meta("og:image")
+        # print(f"Encoded image url: {encoded_img_url}")
+        match = re.search(r"/image/([A-Za-z0-9]+)", encoded_img_url)
+        encoded_img_id = match.group(1)
+        # print(f"Encoded image id: {encoded_img_id}")
+    except: return (False, False)
+    # """
+
     recieved_song_title = meta("og:title")
     recieved_song_description = meta("og:description")
     recieved_song_info = f'{recieved_song_title} {recieved_song_description}'
-    flag = match_song_metadata(local_song_path=song_path, received_song_info=recieved_song_info, threshold=70)
+    flag = match_song_metadata(print_match=False,local_song_path=song_path, received_song_info=recieved_song_info, threshold=60)
     if flag is False: return (False, False)
     #/end For track comparison
 
@@ -67,12 +79,22 @@ def fetch_lyrics(song_path: str) -> tuple:
     spotify_track_id = match.group(1)
     # print(f"Spotify track id: {spotify_track_id}")
 
-    json_response = sp.get_lyrics(track_id=spotify_track_id)
-    # save json response
-    # with open(f"_lyrics/{recieved_song_title}.json", "w", encoding="utf-8") as f:
-    #     json.dump(json_response, f, ensure_ascii=False, indent=2)
+    lyrics_url = f"https://spclient.wg.spotify.com/color-lyrics/v2/track/{spotify_track_id}/image/https%3A%2F%2Fi.scdn.co%2Fimage%2F{encoded_img_id}?format=json&vocalRemoval=false&market=from_token"
+    
+    headers = {
+        "Authorization": SPOTIFY_AUTH,
+        "App-Platform": "WebPlayer",
+        "User-Agent": "Spotify/1.2.0",
+    }
 
-    lyrics = extract_spotify_lyrics(json_data=json_response)
+    try:
+        response = requests.get(url=lyrics_url, headers=headers)
+        json_data = response.json()
+        # with open(f"lyrics/{recieved_song_title}.json", "w", encoding="utf-8") as f:
+        #     json.dump(json_data, f, ensure_ascii=False, indent=2)
+    except: return (False, False)
+
+    lyrics = extract_spotify_lyrics(json_data=json_data)
     try: 
         cache["synced_lyrics"] = lyrics[0]
         cache["unsynced_lyrics"] = lyrics[1]
@@ -83,27 +105,24 @@ def fetch_lyrics(song_path: str) -> tuple:
 
 
 if __name__ == "__main__":
-    # SONG_PATHS = [
-    #     "C:\\Users\\Max\\Desktop\\music\\small\\Sunidhi Chauhan - Tanha Tere Bagair.flac", # musixmatch only
-    #     "C:\\Users\\Max\\Desktop\\music\\small\\Shreya Ghoshal - Cry Cry.flac", # lrclib only
-    #     "C:\\Users\\Max\\Desktop\\music\\small\\Outstation - Tum Se.flac", # both
-    #     "C:\\Users\\Max\\Desktop\\music\\small\\Heil Hitler Kanye West.flac" # none
-    #     ]
-    SONG_PATHS = [
-        "C:\\Users\\Max\\Desktop\\music\\small\\Pritam - Qayde Se.flac",
-        "C:\\Users\\Max\\Desktop\\music\\small\\Vishal & Shekhar - Jaane Hai Woh Kahan.flac",
-        "C:\\Users\\Max\\Desktop\\music\\small\\Pritam - Bhool Bhulaiyaa.flac",
-        "C:\\Users\\Max\\Desktop\\music\\small\\Shreya Ghoshal - Tu (Reprise).flac"
-    ]
-    for i, song in enumerate(SONG_PATHS):
-        print(f"{i+1}. {song}")
-        synced, unsynced =  fetch_lyrics(song_path=song)
-        with open(f"lyrics/{i+1}.lrc", "w", encoding="utf-8") as f:
-            f.write(f"\n{song}\nsynced\n\n{synced}")
-            f.write(f"\n{song}\nunsynced\n\n{unsynced}")
+    AUDIO_EXTENSIONS = {".mp3", ".flac", ".wav", ".aac", ".m4a",".ogg", ".opus", ".alac", ".aiff"}
+    MUSIC_DIRECTORY = "C:\\Users\\Max\\Desktop\\music\\small"
+    from pathlib import Path
+    music_dir = Path(MUSIC_DIRECTORY)
+    music_files = (
+        f for f in music_dir.iterdir()
+        if f.is_file() and f.suffix.lower() in AUDIO_EXTENSIONS
+    )
 
+    for i, song_path in enumerate(music_files):
+        print(f"{i+1}. {song_path.stem}")
+        synced, unsynced =  fetch_lyrics(song_path=song_path)
+        with open(f"lyrics/{song_path.stem}.lrc", "w", encoding="utf-8") as f:
+            f.write(f"\n{song_path.stem}\nsynced\n\n{synced}")
+            f.write(f"\n{song_path.stem}\nunsynced\n\n{unsynced}")
 
-
+    driver.close()
+    clear_profile_cache()
 
 
 

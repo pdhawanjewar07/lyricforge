@@ -1,4 +1,4 @@
-from utils.playwright_startup import PlaywrightDriver
+from utils.playwright_driver import PlaywrightDriver
 
 
 
@@ -8,4 +8,4 @@ driver.page.goto("https://accounts.spotify.com")
 input("Log in manually, then press Enter...")
 driver.close()
 
-# Recommended for - better song matching
+# Necessary for - better song matching

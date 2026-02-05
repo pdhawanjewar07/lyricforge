@@ -1,10 +1,11 @@
 from utils.helpers import save_lyrics, format_time
 from config import MUSIC_DIRECTORY, OUTPUT_DIRECTORY, LYRICS_FETCH_MODE
-from utils.playwright_clear_cache import clear_playwright_cache
 from pathlib import Path
 import logging
 from utils.fetch.from_all import fetch_lyrics
 import time
+from utils.playwright_driver import clear_profile_cache
+from utils.fetch.musixmatch import driver
 
 def main() -> int:
     """main function
@@ -12,7 +13,6 @@ def main() -> int:
     :return: 0
     :rtype: int
     """
-    start_time = time.time()
     log = logging.getLogger(__name__)
 
     total_processed = 0
@@ -25,6 +25,7 @@ def main() -> int:
         if f.is_file() and f.suffix.lower() in AUDIO_EXTENSIONS
     )
 
+    start_time = time.time()
     for song_path in music_files:
         total_processed += 1
         try:
@@ -37,15 +38,16 @@ def main() -> int:
 
         except Exception as e: log.exception(f"FAILED: {song_path.name}")
 
-    clear_playwright_cache()
+    driver.close()
+    clear_profile_cache()
 
     success_rate = (total_found_and_saved / total_processed) * 100 if total_processed else 0.0
-    end_time = time.time() - start_time
-    avg_time_per_song_found = end_time / total_found_and_saved
+    elapsed_time = time.time() - start_time
+    avg_time_per_song_found = elapsed_time / total_found_and_saved if total_found_and_saved else 0.0
     log.info("==== Summary ====")
     log.info(f"Success Rate: {success_rate:0.2f}% | {total_found_and_saved}/{total_processed}")
     log.info(f"Average time per song found: {avg_time_per_song_found:0.2f}(seconds)")
-    log.info(f"Total elapsed time: {format_time(end_time)}") # 23hrs:12min:59sec,213ms
+    log.info(f"Total elapsed time: {format_time(elapsed_time)}") # 23hrs:12min:59sec,213ms
     return 0
 
 if __name__ == "__main__":

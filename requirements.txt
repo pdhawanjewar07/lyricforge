@@ -1,5 +1,6 @@
 mutagen
 requests
 urllib3
-syrics
 python-dotenv
+
+# syrics

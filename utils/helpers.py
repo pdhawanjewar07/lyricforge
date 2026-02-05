@@ -35,7 +35,7 @@ def clean_string(raw_string:str) -> str:
     
     """
     clean_string = raw_string.lower()                         # to lowercase
-    # clean_string = re.sub(r"\s*\([^)]*\)", "", clean_string)  # remove anything inside brackets with themselves
+    clean_string = re.sub(r"\s*\([^)]*\)", "", clean_string)  # remove anything inside brackets with themselves
     clean_string = re.sub(r"[^\w\s÷]", " ", clean_string, flags=re.UNICODE)  # remove punctuation, keep unicode,÷(for other languages)
     clean_string = clean_string.replace("_", " ") # unicode flag ignores "_"
     clean_string = re.sub(r"\s*Various Interprets", "", clean_string, flags=re.IGNORECASE)  # remove "Various Interprets"
@@ -43,7 +43,7 @@ def clean_string(raw_string:str) -> str:
     clean_string = re.sub(r"\s+", " ", clean_string).strip()  # clean excess whitespace
     return clean_string
 
-def match_song_metadata(local_song_path:str, received_song_info:str, threshold:float) -> bool:
+def match_song_metadata(local_song_path:str, received_song_info:str, threshold:float, print_match:bool=False) -> bool:
     """fuzzy match local and recieved song metadata
 
     :param local_song_path: local song path
@@ -65,29 +65,34 @@ def match_song_metadata(local_song_path:str, received_song_info:str, threshold:f
     local_song_album:str = clean_string(audio.get("album", [None])[0])
     received_song_info:str = clean_string(received_song_info)
 
-    flag = True
-
     score_title = fuzz.partial_ratio(local_song_title, received_song_info)
-    if score_title<threshold: flag = False
-    # print(f"_title_match_score: {score_title:0.2f}%")
-    # print(f"__local_title_info: {local_song_title}")
-    # print(f"received_song_info: {received_song_info}")
+    title_flag = True
+    if score_title<threshold: title_flag = False
+    # if local_song_title in received_song_info: title_flag = True
+    if print_match and title_flag is False:   # print info on match fail condition
+        print(f"__local_title_info: {local_song_title}")
+        print(f"received_song_info: {received_song_info}")
+        print(f"_title_match_score: {score_title:0.2f}%")
     
 
-    # score_artist = fuzz.partial_ratio(local_song_artist, received_song_info)
-    # if score_artist<threshold: flag = False
-    # print(f"artist_match_score: {score_artist}")
-    # print(f"_local_artist_info: {local_song_title}")
-    # print(f"received_song_info: {received_song_info}")
+    score_artist = fuzz.partial_ratio(local_song_artist, received_song_info)
+    artist_flag = True
+    if score_artist<threshold: artist_flag = False
+    if print_match and artist_flag is False:  # print info on match fail condition
+        print(f"_local_artist_info: {local_song_artist}")
+        print(f"received_song_info: {received_song_info}")
+        print(f"artist_match_score: {score_artist:0.2f}%")
 
     score_album = fuzz.partial_ratio(local_song_album, received_song_info)
-    if score_album<threshold: flag = False
-    # print(f"_album_match_score: {score_album:0.2f}%")
-    # print(f"__local_album_info: {local_song_title}")
-    # print(f"received_song_info: {received_song_info}")
+    album_flag = True
+    if score_album<threshold: album_flag = False
+    if print_match and album_flag is False:   # print info on match fail condition
+        print(f"__local_album_info: {local_song_album}")
+        print(f"received_song_info: {received_song_info}")
+        print(f"_album_match_score: {score_album:0.2f}%")
     
-    
-    return flag
+    global_flag = title_flag and (artist_flag or album_flag)
+    return global_flag
 
 def build_search_query(song_path: str) -> str:
     """Build a search query string from selected audio tags.
@@ -161,7 +166,7 @@ def extract_spotify_lyrics(json_data: dict) -> tuple:
     :rtype: str | bool
 
     """
-    if json_data is None: return False
+    if json_data is None: return (False, False)
 
     lyrics = json_data.get("lyrics", {})
     syncType = lyrics.get("syncType", "")
@@ -183,7 +188,7 @@ def extract_spotify_lyrics(json_data: dict) -> tuple:
                 words = entry.get("words", "").strip()
                 start_ms = int(entry["startTimeMs"])
                 timestamp = ms_to_timestamp(start_ms)
-                lyrics_data["synced_lyrics"] += f"\n[{timestamp}]{words}"
+                lyrics_data["synced_lyrics"] += f"[{timestamp}]{words}\n"
             return True
         return False
 
@@ -192,14 +197,14 @@ def extract_spotify_lyrics(json_data: dict) -> tuple:
             lyrics_data["unsynced_lyrics"] = ""
             for entry in lines_data:
                 words = entry.get("words", "").strip()
-                lyrics_data["unsynced_lyrics"] += f"\n{words}"
+                lyrics_data["unsynced_lyrics"] += f"{words}\n"
             return True
         return False
         
     if synced() is True:
-        lyrics_data["synced_lyrics"] += "\n\nSource: MusixMatch via Spotify"
+        lyrics_data["synced_lyrics"] += "\nSource: MusixMatch via Spotify"
     if unsynced() is True:
-        lyrics_data["unsynced_lyrics"] += "\n\nSource: MusixMatch via Spotify"
+        lyrics_data["unsynced_lyrics"] += "\nSource: MusixMatch via Spotify"
 
     return (lyrics_data["synced_lyrics"], lyrics_data["unsynced_lyrics"])
 

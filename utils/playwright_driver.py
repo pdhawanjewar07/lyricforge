@@ -1,6 +1,10 @@
 from playwright.sync_api import sync_playwright
 from pathlib import Path
 from typing import Optional, List
+import logging
+import shutil
+
+log = logging.getLogger(__name__)
 
 class PlaywrightDriver:
     def __init__(
@@ -8,7 +12,7 @@ class PlaywrightDriver:
         user_data_dir: str = "playwright_profile",
         headless: bool = True,
         args: Optional[List[str]] = None,
-        timeout_ms: int = 30_000,
+        timeout_ms: int = 60_000,
     ):
         self._playwright = sync_playwright().start()
 
@@ -33,6 +37,7 @@ class PlaywrightDriver:
         self.page = self._context.pages[0]
         self.page.set_default_timeout(timeout_ms)
         self.page.set_default_navigation_timeout(timeout_ms)
+        log.info("==== Playwright Driver was started ====")
 
     def get(self, url: str):
         self.page.goto(url)
@@ -40,3 +45,31 @@ class PlaywrightDriver:
     def close(self):
         self._context.close()
         self._playwright.stop()
+        log.info("==== Playwright Driver was closed ====")
+
+
+def clear_profile_cache():
+    PROFILE = Path("playwright_profile")
+    SAFE_TO_DELETE = [
+        "component_crx_cache",
+        "Crashpad",
+        "Default/Cache",
+        "Default/Code Cache",
+        "Default/DawnGraphiteCache",
+        "Default/DawnWebGPUCache",
+        "Default/GPUCache",
+        "extensions_crx_cache",
+        "GraphiteDawnCache",
+        "GrShaderCache",
+        "ShaderCache"
+    ]
+    for name in SAFE_TO_DELETE:
+        path = PROFILE / name
+        if path.exists():
+            shutil.rmtree(path)
+            # print(f"Deleted {path}")
+    log.info("==== Playwright Profile Cache was safely cleared! ====")
+    return True
+
+
+

@@ -2,21 +2,22 @@ Notes -
 🔵 genius is too inconsistent, better not to use 
 
 Currently working on -
-🟡 make lrclib fetch robust to network issues 
-🟡 fix lrclib
+
 
 To work on -
 🔴 apply best coding practices, normalize and optimize the codebase
-🔴 remove dependency on syrics, grab lyrics network request from spotify network request
 🔴 add option to auto embed lyrics to tracks 
 🔴 add source: lyricsfind-via-ytmusic/google
-🔴 switch to official spotify api when developer dashboard app creation becomes available
+🔴 switch to official spotify api when developer dashboard app creation becomes available(speed up)
 
 Finished working on -
 🟢 use all sources together 
 🟢 use relative paths 
 🟢 move config to project root
 🟢 best lyrics item match - reject if title, artist, album doesn't match
-🟢 lead lyrics by around 1 second
+🟢 add lead lyrics utility function
 🟢 cache unsynced lyrics if found to avoid double fetch
 🟢 maybe switch from selenium to playwright?
+🟢 remove dependency on syrics, grab lyrics network request from spotify network request
+🟢 make lrclib fetch robust to network issues 
+🟢 fix lrclib
