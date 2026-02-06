@@ -2,7 +2,7 @@
 fetch lyrics from musixmatch-via-spotify, lrclib, genius, jiosaavn. 
 
 ## Steps to follow -
-1. **setup a virtual environment**
+1. setup a **virtual environment**
 ```pwsh
 python -m venv .venv
 ```
@@ -11,15 +11,15 @@ python -m venv .venv
 .venv\Scripts\activate.ps1
 ```
 
-2. **install required packages**
+2. **install** required packages
 ``` pwsh
 pip install -r requirements.txt
 ```
 
-3. **save your auth token(s) in .env**
+3. save your auth token(s) in **.env** file
     - GENIUS_ACCESS_TOKEN, SPOTIFY_AUTH
 
-4. **set preferences in config**
+4. set **preferences** in config.py
 
 5. run **main.py**
 
