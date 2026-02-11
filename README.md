@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/cover.png" alt="lyricsforge cover" width="100%">
+  <img src="assets/LyricHarbor.png" alt="lyricsforge cover" width="100%">
 </p>
 
 fetch lyrics from musixmatch-via-spotify, lrclib, genius, jiosaavn. 
